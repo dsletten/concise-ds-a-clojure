@@ -28,7 +28,7 @@
 (ns prefix
   (:use clojure.test
         [clojure.pprint :only (cl-format)])
-  (:import))
+  (:require [containers :as c]))
 
 ;; (defn operation [operator]
 ;;   (case operator
@@ -132,6 +132,52 @@
             (let [{:keys [operator-stack operand-stack]} (process token operator-stack operand-stack)]
               (recur (read-token st) operator-stack operand-stack))
             (recur (read-token st) (conj operator-stack token) operand-stack)))) )))
+
+;;;
+;;;    Using my Stack...
+;;;    
+(defn mark [stack]
+  (c/push stack marker))
+
+(defn marked? [stack]
+  (and (not (c/empty? stack)) (= (c/top stack) marker)))
+
+;;;
+;;;    Stack implementation is far more complicated...
+;;;    
+(defn stack-eval-prefix [s]
+  (let [st (java.util.StringTokenizer. s)]
+    (letfn [(process [operand operator-stack operand-stack]
+              (if (not (marked? operator-stack))
+                (process-left-operand operand operator-stack operand-stack)
+                (process-right-operand operand operator-stack operand-stack)))
+            (process-left-operand [operand operator-stack operand-stack]
+              {:operator-stack (mark operator-stack)
+               :operand-stack (c/push operand-stack operand)})
+            (process-right-operand [operand operator-stack operand-stack]
+               (let [new-operator-stack (c/pop operator-stack)]
+                 (when (c/empty? new-operator-stack)
+                   (error "Missing operator"))
+                 (process (evaluate (c/top new-operator-stack) (c/top operand-stack) operand) (c/pop new-operator-stack) (c/pop operand-stack))))
+            (validate [operator-stack operand-stack]
+              (cond (c/empty? operator-stack) (error "Missing argument") ; Operator stack should consist of only marker.
+                    (not (marked? operator-stack)) (error "Illegal state") ; Not strictly necessary? Next clause would detect.
+                    (c/empty? operand-stack) (error "Missing expression") ; Final value should be on operand stack.
+                    :else (let [result (c/top operand-stack)]
+                            (when (not (c/empty? (c/pop operand-stack)))
+                              (error "Too many arguments"))
+                            (when (not (c/empty? (c/pop operator-stack)))
+                              (error "Missing argument"))
+                            result)))]
+      (loop [token (read-token st)
+             operator-stack (c/empty-stack)
+             operand-stack (c/empty-stack)]
+        (if (nil? token)
+          (validate operator-stack operand-stack)
+          (if (number? token)
+            (let [{:keys [operator-stack operand-stack]} (process token operator-stack operand-stack)]
+              (recur (read-token st) operator-stack operand-stack))
+            (recur (read-token st) (c/push operator-stack token) operand-stack)))) )))
 
 (defn test-prefix [f]
   (is (== (f "9") 9))

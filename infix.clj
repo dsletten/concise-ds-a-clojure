@@ -35,7 +35,7 @@
 (ns infix
   (:use clojure.test
         [clojure.pprint :only (cl-format)])
-  (:import))
+  (:require [containers :as c]))
 
 (defn lookup [operator]
   (case operator
@@ -217,6 +217,39 @@
                                         #=(symbol ")") (evaluate-op (rest tokens) operator-stack operand-stack)
                                         (+ - * / %) (recur (rest tokens) (conj operator-stack token) operand-stack)))) ))]
     (eval-expression (tokenize s)'()'())))
+
+;;;
+;;;    My Stack
+;;;    
+(defn stack-eval-infix [s]
+  (letfn [(evaluate-op [tokens operator-stack operand-stack]
+            (if (c/empty? operand-stack)
+              (error "Missing argument")
+              (let [op2 (c/top operand-stack)
+                    operand-stack (c/pop operand-stack)]
+                (if (c/empty? operand-stack)
+                  (error "Missing argument")
+                  (let [op1 (c/top operand-stack)
+                        operand-stack (c/pop operand-stack)]
+                    (if (c/empty? operator-stack)
+                      (error "Missing operator")
+                      (let [op (c/top operator-stack)
+                            operator-stack (c/pop operator-stack)]
+                        (eval-expression tokens operator-stack (c/push operand-stack (evaluate op op1 op2)))) )))) ))
+          (eval-expression [tokens operator-stack operand-stack]
+            (if (empty? tokens)
+              (cond (c/empty? operand-stack) (error "Missing expression")
+                    :else (cond (and (c/empty? (c/pop operand-stack))
+                                     (c/empty? operator-stack))
+                                (c/top operand-stack)
+                                :else (error "Malformed expression")))
+              (let [token (first tokens)]
+                (cond (number? token) (recur (rest tokens) operator-stack (c/push operand-stack token))
+                      (symbol? token) (case token
+                                        #=(symbol "(") (recur (rest tokens) operator-stack operand-stack) ; Ignore...                                
+                                        #=(symbol ")") (evaluate-op (rest tokens) operator-stack operand-stack)
+                                        (+ - * / %) (recur (rest tokens) (c/push operator-stack token) operand-stack)))) ))]
+    (eval-expression (tokenize s) (c/empty-stack) (c/empty-stack))))
 
 (deftest test-stack-eval-infix
   (is (== (stack-eval-infix "9") 9))

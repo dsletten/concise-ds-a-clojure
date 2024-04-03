@@ -30,7 +30,7 @@
 (ns postfix
   (:use clojure.test
         [clojure.pprint :only (cl-format)])
-  (:import))
+  (:require [containers :as c]))
 
 (defn lookup [operator]
   (case operator
@@ -120,6 +120,30 @@
                                                  (let [left (peek stack)
                                                        stack (pop stack)]
                                                    (recur (read-token st) (conj stack (evaluate token left right)))) ))))
+              :else (error "Malformed postfix expression.")))) ))
+
+;;;
+;;;    My Stack
+;;;    
+(defn stack-eval-postfix [s]
+  (let [st (java.util.StringTokenizer. s)]
+    (loop [token (read-token st)
+           stack (c/empty-stack)]
+      (if (nil? token)
+        (cond (c/empty? stack) (error "Missing expression")
+              (not (c/empty? (c/pop stack))) (error "Too many arguments")
+              :else (c/top stack))
+        (cond (number? token) (recur (read-token st) (c/push stack token))
+              (symbol? token) (case token
+                               (+ - * / %) (if (c/empty? stack)
+                                             (error "Missing argument")
+                                             (let [right (c/top stack)
+                                                   stack (c/pop stack)]
+                                               (if (c/empty? stack)
+                                                 (error "Missing argument")
+                                                 (let [left (c/top stack)
+                                                       stack (c/pop stack)]
+                                                   (recur (read-token st) (c/push stack (evaluate token left right)))) ))))
               :else (error "Malformed postfix expression.")))) ))
 
 (defn test-postfix [f]
