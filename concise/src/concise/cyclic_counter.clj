@@ -41,6 +41,13 @@
 (defmethod print-method Counter [counter writer]
   (.write writer (format "%s %d/%d" (.getSimpleName (class counter)) (index counter) (modulus counter))))
 
+;; Tagged literal for reader
+;; Clojure collections have `clear` distinct from java.util.Collectio
+;; exercises:
+;; make a custom class printable and readable as a tagged literal value
+;; Make the persistent counter resettable using Clojure interface for resetting / clearing collections
+;; The Counter protocol has more methods that it needs, which methods can be removed from the protocol and implemented with delegating functions
+
 (deftype CyclicCounter [clicks limit]
   Counter
   (index [this] @clicks)
@@ -63,8 +70,8 @@
 
 (declare make-persistent-counter)
 
-;(defrecord PersistentCyclicCounter [clicks limit]
-(deftype PersistentCyclicCounter [clicks limit]
+(defrecord PersistentCyclicCounter [clicks limit]
+;(deftype PersistentCyclicCounter [clicks limit]
   Counter
   (index [this] clicks)
   (modulus [this] limit)
