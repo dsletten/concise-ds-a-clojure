@@ -21,7 +21,7 @@
 ;;;;
 ;;;;   Example:
 ;;;;
-;;;;   Notes:
+;;;;   Notes: https://github.com/henryw374/time-literals
 ;;;;
 ;;;;
 
@@ -31,9 +31,16 @@
 (defprotocol Counter
   (index [this])
   (modulus [this])
-  (advance [this] [this n])
-  (set [this n])
-  (reset [this]))
+  (advance-by [this n])
+  (set [this n]))
+;  (reset [this]))
+
+(defn reset [c]
+  (set c 0))
+
+(defn advance
+  ([c] (advance-by c 1))
+  ([c n] (advance-by c n)))
 
 ;;;
 ;;;    Can't inherit?!?!
@@ -52,13 +59,13 @@
   Counter
   (index [this] @clicks)
   (modulus [this] limit)
-  (advance [this] (advance this 1))
-  (advance [this n]
+;  (advance [this] (advance this 1))
+  (advance-by [this n]
 ;      (reset! clicks (mod (+ @clicks n) limit)))
     (swap! clicks #(mod (+ % n) limit)))
   (set [this n]
-    (reset! clicks (mod n limit)))
-  (reset [this] (set this 0)))
+    (reset! clicks (mod n limit))))
+;  (reset [this] (set this 0)))
 
 (defn make-counter [n]
   (if (< n 1)
@@ -104,12 +111,12 @@
   Counter
   (index [this] clicks)
   (modulus [this] limit)
-  (advance [this] (advance this 1))
-  (advance [this n]
+;  (advance [this] (advance this 1))
+  (advance-by [this n]
     (make-persistent-counter (+ clicks n) limit))
   (set [this n]
-    (make-persistent-counter n limit))
-  (reset [this] (set this 0)))
+    (make-persistent-counter n limit)))
+;  (reset [this] (set this 0)))
 
 ;;;
 ;;;    No way to prevent illegal state by calling constructor directly?
