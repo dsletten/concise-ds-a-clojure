@@ -65,8 +65,37 @@
     (throw (IllegalArgumentException. "Modulus must be at least 1."))
     (CyclicCounter. (atom 0) n)))
 
+;; (defmethod print-method CyclicCounter [counter writer]
+;;   (.write writer (format "%s %d/%d" (.getSimpleName (class counter)) (index counter) (modulus counter))))
+
 (defmethod print-method CyclicCounter [counter writer]
-  (.write writer (format "%s %d/%d" (.getSimpleName (class counter)) (index counter) (modulus counter))))
+  (.write writer (format "#cc [%d %d]" (index counter) (modulus counter))))
+
+;; *data-readers*
+;; {counter/cyclic-counter #'concise.cyclic-counter/read-cyclic-counter,
+;;  dbg #'cider.nrepl.middleware.debug/debug-reader,
+;;  break #'cider.nrepl.middleware.debug/breakpoint-reader,
+;;  light #'cider.nrepl.middleware.enlighten/light-reader}
+
+;; (defn read-cyclic-counter [^CharSequence cs]
+;; (prn cs)
+;;   (prn (re-matches #"\[(\d+)\s+(\d+)\]" cs))
+;; ;;  cs)
+;; ;;  (println [m n])
+;; ;;  m)
+;;   ;; (let [[m n] (read-string cs)
+;;   (let [[_ m n] (re-matches #"\[(\d+)\s+(\d+)\]" cs)
+;;         c (make-counter (Integer/parseInt n))]
+;; (prn c)
+;;     (advance c (Integer/parseInt m))
+;; (prn c)
+;; c))
+;; ;(CyclicCounter. (atom (Integer/parseInt m)) (Integer/parseInt n))))
+
+(defn read-cyclic-counter [[m n]]
+  `(let [c# (make-counter ~n)]
+     (advance c# ~m)
+     c#))
 
 (declare make-persistent-counter)
 
@@ -93,11 +122,22 @@
      (throw (IllegalArgumentException. "Modulus must be at least 1."))
      (PersistentCyclicCounter. (mod i n) n))))
 
+;; (defn make-persistent-counter [n]
+;;   (if (< n 1)
+;;     (throw (IllegalArgumentException. "Modulus must be at least 1."))
+;;     (PersistentCyclicCounter. 0 n)))
+
+(defn read-persistent-cyclic-counter [[m n]]
+  `(make-persistent-counter ~m ~n))
+
 ;;;
-;;;    Not recognized!?!?! (With `defrecord`!!)
+;;;    Not recognized!?!?! (With `defrecord`!!)  REPL!!!
 ;;;    
+;; (defmethod print-method PersistentCyclicCounter [counter writer]
+;;   (.write writer (format "%s %d/%d" (.getSimpleName (class counter)) (index counter) (modulus counter))))
+
 (defmethod print-method PersistentCyclicCounter [counter writer]
-  (.write writer (format "%s %d/%d" (.getSimpleName (class counter)) (index counter) (modulus counter))))
+  (.write writer (format "#pcc [%d %d]" (index counter) (modulus counter))))
 
 ;;;
 ;;;    Ted Cushman
@@ -112,3 +152,6 @@
 ;;;    Expose race condition with `reset!`
 ;;;    
 (let [c (make-counter 1000000)] (doall (pmap (fn [_] (advance c)) (range 500))) (index c))
+
+
+;{:cc #cc [1 5] :pcc #pcc [2 9]}
