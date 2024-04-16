@@ -24,6 +24,9 @@
 ;;;;   Notes: https://github.com/henryw374/time-literals
 ;;;;
 ;;;;
+;; exercises:
+;; Make the persistent counter resettable using Clojure interface for resetting / clearing collections
+
 
 (ns concise.cyclic-counter
   (:refer-clojure :exclude [set]))
@@ -33,14 +36,16 @@
   (modulus [this])
   (advance-by [this n])
   (set [this n]))
-;  (reset [this]))
 
-(defn reset [c]
-  (set c 0))
-
+;;;
+;;;    Default implementations. Can't define as part of protocol.
+;;;    
 (defn advance
   ([c] (advance-by c 1))
   ([c n] (advance-by c n)))
+
+(defn reset [c]
+  (set c 0))
 
 ;;;
 ;;;    Can't inherit?!?!
@@ -48,58 +53,71 @@
 (defmethod print-method Counter [counter writer]
   (.write writer (format "%s %d/%d" (.getSimpleName (class counter)) (index counter) (modulus counter))))
 
-;; Tagged literal for reader
-;; Clojure collections have `clear` distinct from java.util.Collectio
-;; exercises:
-;; make a custom class printable and readable as a tagged literal value
-;; Make the persistent counter resettable using Clojure interface for resetting / clearing collections
-;; The Counter protocol has more methods that it needs, which methods can be removed from the protocol and implemented with delegating functions
-
 (deftype CyclicCounter [clicks limit]
   Counter
   (index [this] @clicks)
   (modulus [this] limit)
-;  (advance [this] (advance this 1))
   (advance-by [this n]
-;      (reset! clicks (mod (+ @clicks n) limit)))
     (swap! clicks #(mod (+ % n) limit)))
   (set [this n]
     (reset! clicks (mod n limit))))
-;  (reset [this] (set this 0)))
 
 (defn make-counter [n]
   (if (< n 1)
     (throw (IllegalArgumentException. "Modulus must be at least 1."))
     (CyclicCounter. (atom 0) n)))
 
-;; (defmethod print-method CyclicCounter [counter writer]
-;;   (.write writer (format "%s %d/%d" (.getSimpleName (class counter)) (index counter) (modulus counter))))
-
 (defmethod print-method CyclicCounter [counter writer]
-  (.write writer (format "#cc [%d %d]" (index counter) (modulus counter))))
-
-;; *data-readers*
-;; {counter/cyclic-counter #'concise.cyclic-counter/read-cyclic-counter,
-;;  dbg #'cider.nrepl.middleware.debug/debug-reader,
-;;  break #'cider.nrepl.middleware.debug/breakpoint-reader,
-;;  light #'cider.nrepl.middleware.enlighten/light-reader}
+  (.write writer (format "#counter/cc [%d %d]" (index counter) (modulus counter))))
 
 ;; (defn read-cyclic-counter [^CharSequence cs]
-;; (prn cs)
-;;   (prn (re-matches #"\[(\d+)\s+(\d+)\]" cs))
-;; ;;  cs)
-;; ;;  (println [m n])
-;; ;;  m)
-;;   ;; (let [[m n] (read-string cs)
-;;   (let [[_ m n] (re-matches #"\[(\d+)\s+(\d+)\]" cs)
-;;         c (make-counter (Integer/parseInt n))]
-;; (prn c)
-;;     (advance c (Integer/parseInt m))
-;; (prn c)
-;; c))
-;; ;(CyclicCounter. (atom (Integer/parseInt m)) (Integer/parseInt n))))
+;;   (prn cs)
+;;   (let [[m n] (read-string cs)
+;;         c (make-counter n)]
+;;     (prn c)
+;;     (advance c m)
+;;     (prn c)
+;;     c))
+
+;; concise.cyclic-counter> #counter/cc "[2 3]"
+;; "[2 3]"
+;; #counter/cc [0 3]
+;; #counter/cc [2 3]
+;; "[2 3]"
+;; #counter/cc [0 3]
+;; #counter/cc [2 3]
+;; Syntax error compiling fn* at (concise:localhost:40519(clj)*:1:7846).
+;; Can't embed object in code, maybe print-dup not defined: clojure.lang.Atom@4f6b1878
+
+;; (defn read-cyclic-counter [[m n]]
+;;   (prn [m n])
+;;   (let [c (make-counter n)]
+;;     (prn c)
+;;     (advance c m)
+;;     (prn c)
+;; ;    c))
+;; 8))
+
+;; concise.cyclic-counter> #counter/cc [2 3]
+;; [2 3]
+;; #counter/cc [0 3]
+;; #counter/cc [2 3]
+;; [2 3]
+;; #counter/cc [0 3]
+;; #counter/cc [2 3]
+;; Syntax error compiling fn* at (concise:localhost:40519(clj)*:1:7846).
+;; Can't embed object in code, maybe print-dup not defined: clojure.lang.Atom@2230e800
+
+;;;
+;;;    Called twice!
+;;;    
+;; (defn read-cyclic-counter [[m n]]
+;;   (prn [m n])
+;;   8)
+
 
 (defn read-cyclic-counter [[m n]]
+;(prn [m n])
   `(let [c# (make-counter ~n)]
      (advance c# ~m)
      c#))
@@ -111,12 +129,10 @@
   Counter
   (index [this] clicks)
   (modulus [this] limit)
-;  (advance [this] (advance this 1))
   (advance-by [this n]
     (make-persistent-counter (+ clicks n) limit))
   (set [this n]
     (make-persistent-counter n limit)))
-;  (reset [this] (set this 0)))
 
 ;;;
 ;;;    No way to prevent illegal state by calling constructor directly?
@@ -129,22 +145,17 @@
      (throw (IllegalArgumentException. "Modulus must be at least 1."))
      (PersistentCyclicCounter. (mod i n) n))))
 
-;; (defn make-persistent-counter [n]
-;;   (if (< n 1)
-;;     (throw (IllegalArgumentException. "Modulus must be at least 1."))
-;;     (PersistentCyclicCounter. 0 n)))
+;;;
+;;;    Args not evaluated
+;;;    https://clojure.org/reference/reader#_deftype_defrecord_and_constructor_calls_version_1_3_and_later
+;;;    
+;     #concise.cyclic_counter.PersistentCyclicCounter[2 8]
 
 (defn read-persistent-cyclic-counter [[m n]]
   `(make-persistent-counter ~m ~n))
 
-;;;
-;;;    Not recognized!?!?! (With `defrecord`!!)  REPL!!!
-;;;    
-;; (defmethod print-method PersistentCyclicCounter [counter writer]
-;;   (.write writer (format "%s %d/%d" (.getSimpleName (class counter)) (index counter) (modulus counter))))
-
 (defmethod print-method PersistentCyclicCounter [counter writer]
-  (.write writer (format "#pcc [%d %d]" (index counter) (modulus counter))))
+  (.write writer (format "#counter/pcc [%d %d]" (index counter) (modulus counter))))
 
 ;;;
 ;;;    Ted Cushman
