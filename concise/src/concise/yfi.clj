@@ -30,16 +30,34 @@
 
 (defprotocol Measure
   (length [this])
-  (add [this that])
-  (equal [this that]))
+  (add [this that]))
+;  (equal [this that]))
 
+(deftype YFI [inches]
+  Measure
+  (length [this] inches)
+  (add [this that]
+    (YFI. (clojure.core/+ (length this) (length that))))
+  Object
+  (equals [this that]
+    (clojure.core/= (length this) (length that))))
+
+(extend-protocol Measure
+  Long
+  (length [this] this)
+  (add [this that]
+    (YFI. (clojure.core/+ (length this) (length that))))
+  Object
+  (equals [this that]
+    (clojure.core/= this (length that))))
+    
 (let [zero (YFI. 0)]
   (defn + [& yfis]
     (reduce add zero yfis)))
 
 (defn = [yfi & yfis]
 ;  (every? #(equal yfi %) yfis))
-  (every? (fn [elt] (equal yfi elt)) yfis))
+  (every? (fn [elt] (.equals yfi elt)) yfis))
 
 (defn inches [yfi]
   (mod (length yfi) 12))
@@ -49,14 +67,6 @@
 
 (defn yards [yfi]
   (long (/ (length yfi) 36)))
-
-(defrecord YFI [length]
-  Measure
-  (length [this] length)
-  (add [this that]
-    (YFI. (clojure.core/+ (length this) (length that))))
-  (equal [this that]
-    (clojure.core/= (length this) (length that))))
 
 (defn- feet->inches [feet]
   (* feet 12))
