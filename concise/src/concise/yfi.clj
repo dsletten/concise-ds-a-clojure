@@ -28,8 +28,35 @@
 (ns concise.yfi
   (:refer-clojure :exclude [+ =]))
 
+(defprotocol Measure
+  (length [this])
+  (add [this that])
+  (equal [this that]))
+
+(let [zero (YFI. 0)]
+  (defn + [& yfis]
+    (reduce add zero yfis)))
+
+(defn = [yfi & yfis]
+;  (every? #(equal yfi %) yfis))
+  (every? (fn [elt] (equal yfi elt)) yfis))
+
+(defn inches [yfi]
+  (mod (length yfi) 12))
+
+(defn feet [yfi]
+  (mod (long (/ (length yfi) 12)) 3))
+
+(defn yards [yfi]
+  (long (/ (length yfi) 36)))
+
 (defrecord YFI [length]
-  (length [this] (:length this)))
+  Measure
+  (length [this] length)
+  (add [this that]
+    (YFI. (clojure.core/+ (length this) (length that))))
+  (equal [this that]
+    (clojure.core/= (length this) (length that))))
 
 (defn- feet->inches [feet]
   (* feet 12))
@@ -50,13 +77,18 @@
   ([yards feet inches]
    (YFI. (clojure.core/+ (yards->inches yards) (feet->inches feet) inches))))
 
+;; (defmethod print-method YFI [yfi writer]
+;;   (.write writer (format "%s yards: %d feet: %d inches: %d"
+;;                          (.getSimpleName (class yfi))
+;;                          (yards yfi)
+;;                          (feet yfi)
+;;                          (inches yfi))))
+                         
 (defmethod print-method YFI [yfi writer]
-  (.write writer (format "%s yards: %d feet: %d inches: %d"
-                         (.getSimpleName (class yfi))
+  (.write writer (format "#yfi \"yards: %d feet: %d inches: %d\""
                          (yards yfi)
                          (feet yfi)
                          (inches yfi))))
-                         
 
 ;;  (+ 3 4)
 
