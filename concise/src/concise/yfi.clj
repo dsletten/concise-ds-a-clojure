@@ -26,38 +26,43 @@
 ;;;;
 
 (ns concise.yfi
-  (:refer-clojure :exclude [+ =]))
+  (:refer-clojure :exclude [+ ==]))
 
 (defprotocol Measure
   (length [this])
-  (add [this that]))
-;  (equal [this that]))
+  (add [this that])
+  (equal [this that]))
 
 (deftype YFI [inches]
   Measure
   (length [this] inches)
   (add [this that]
     (YFI. (clojure.core/+ (length this) (length that))))
-  Object
-  (equals [this that]
-    (clojure.core/= (length this) (length that))))
+  (equal [this that]
+    (clojure.core/== (length this) (length that))))
+  ;; Object
+  ;; (equals [this that]
+  ;;   (clojure.core/= (length this) (length that))))
 
 (extend-protocol Measure
+  ;; clojure.lang.Symbol
+  ;; (length [this] (println "S:" this) this)
   Long
   (length [this] this)
   (add [this that]
-    (YFI. (clojure.core/+ (length this) (length that))))
-  Object
-  (equals [this that]
-    (clojure.core/= this (length that))))
+    (YFI. (clojure.core/+ this (length that))))
+  (equal [this that]
+    (clojure.core/== this (length that))))
+  ;; Object
+  ;; (equals [this that]
+  ;;   (clojure.core/= this (length that))))
     
 (let [zero (YFI. 0)]
   (defn + [& yfis]
     (reduce add zero yfis)))
 
-(defn = [yfi & yfis]
-;  (every? #(equal yfi %) yfis))
-  (every? (fn [elt] (.equals yfi elt)) yfis))
+(defn == [yfi & yfis]
+  (every? (partial equal yfi) yfis))
 
 (defn inches [yfi]
   (mod (length yfi) 12))
@@ -74,18 +79,32 @@
 (defn- yards->inches [yards]
   (* yards 36))
 
-(defn make-yfi
-  ([o]
-   ;; (case (class o)
-   ;;   concise.yfi.YFI o
-   ;;   (YFI. o))))
-   (if (instance? YFI o)
-     o
-     (YFI. o)))
-  ([feet inches]
-   (YFI. (clojure.core/+ (feet->inches feet) inches)))
-  ([yards feet inches]
-   (YFI. (clojure.core/+ (yards->inches yards) (feet->inches feet) inches))))
+(defn make-yfi [& args]
+  (let [construct (fn
+                    ([o]
+                     (println ">" o)
+                     ;; (case (class o)
+                     ;;   concise.yfi.YFI o
+                     ;;   (YFI. o))))
+                     (if (instance? YFI o)
+                       o
+                       (YFI. o)))
+                    ([feet inches]
+                     (println ">>" [feet inches])
+                     (YFI. (clojure.core/+ (feet->inches feet) inches)))
+                    ([yards feet inches]
+                     (println ">>>" [yards feet inches])
+                     (YFI. (clojure.core/+ (yards->inches yards)
+                                           (feet->inches feet)
+                                           inches)))
+                    ([_ _ _ & _] (throw (IllegalArgumentException.
+                                         (format "Invalid initialization: %s" args)))))]
+    (cond (nil? args)
+          (YFI. 0)
+          (every? (every-pred integer? (complement neg?)) args)
+          (apply construct args)
+          :else
+          (throw (IllegalArgumentException. "Length components must be non-negative integers.")))))
 
 ;; (defmethod print-method YFI [yfi writer]
 ;;   (.write writer (format "%s yards: %d feet: %d inches: %d"
@@ -100,36 +119,7 @@
                          (feet yfi)
                          (inches yfi))))
 
-;;  (+ 3 4)
-
-;; (cond (p f g h i j q)
-;;       (r s)
-;;       (t x))
-
-;; (cond p q
-;;       r s
-;;       t x)
-
-;; (condp p v
-;;   x1 y1
-;;   x2 y2)
-
-;; (condp p v
-;;   (x1 y1)
-;;   (x2 :>> y2)
-;;   (n))
-
-;; (cond (zerop pos)
-;;       (error "Can't start with -")
-
-;;       (= 1 pos)
-;;       (let ((start (char char-range 0))
-;; 	    (end   (char char-range 2)))
-;; 	(if (char< start end)
-;; 	  (concatenate 'string
-;; 		       (coerce (make-range start end) 'string)
-;; 		       (expand (subseq char-range 3)))
-;; 	  (error "Inverted range")))
-
-;;       :else (concatenate 'string (subseq char-range 0 (1- pos))
-;; 			 (expand (subseq char-range (1- pos)))))
+(defn read-yfi [^CharSequence cs]
+  (if-let [[_ yards feet inches] (re-matches #"yards: (\d+) feet: (\d+) inches: (\d+)" cs)]
+    (apply make-yfi (map #(Long/parseLong %) [yards feet inches]))
+    (throw (RuntimeException. "Unrecognized YFI"))))
