@@ -79,40 +79,22 @@
 (defn- yards->inches [yards]
   (* yards 36))
 
-(defn make-yfi [& args]
-  (let [construct (fn
-                    ([o]
-                     (println ">" o)
-                     ;; (case (class o)
-                     ;;   concise.yfi.YFI o
-                     ;;   (YFI. o))))
-                     (if (instance? YFI o)
-                       o
-                       (YFI. o)))
-                    ([feet inches]
-                     (println ">>" [feet inches])
-                     (YFI. (clojure.core/+ (feet->inches feet) inches)))
-                    ([yards feet inches]
-                     (println ">>>" [yards feet inches])
-                     (YFI. (clojure.core/+ (yards->inches yards)
-                                           (feet->inches feet)
-                                           inches)))
-                    ([_ _ _ & _] (throw (IllegalArgumentException.
-                                         (format "Invalid initialization: %s" args)))))]
-    (cond (nil? args)
-          (YFI. 0)
-          (every? (every-pred integer? (complement neg?)) args)
-          (apply construct args)
-          :else
-          (throw (IllegalArgumentException. "Length components must be non-negative integers.")))))
+(defn make-yfi
+  ([] (println "|") (make-yfi 0 0 0))
+  ([inches]
+   (println ">" inches)
+   (make-yfi 0 0 inches))
+  ([feet inches]
+   (println ">>" [feet inches])
+   (make-yfi 0 feet inches))
+  ([yards feet inches]
+   (println ">>>" [yards feet inches])
+   (if (every? (every-pred integer? (complement neg?)) [yards feet inches])
+     (YFI. (clojure.core/+ (yards->inches yards)
+                           (feet->inches feet)
+                           inches))
+     (throw (IllegalArgumentException. "Length components must be non-negative integers.")))))
 
-;; (defmethod print-method YFI [yfi writer]
-;;   (.write writer (format "%s yards: %d feet: %d inches: %d"
-;;                          (.getSimpleName (class yfi))
-;;                          (yards yfi)
-;;                          (feet yfi)
-;;                          (inches yfi))))
-                         
 (defmethod print-method YFI [yfi writer]
   (.write writer (format "#yfi \"yards: %d feet: %d inches: %d\""
                          (yards yfi)

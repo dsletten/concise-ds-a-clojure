@@ -118,4 +118,11 @@
              (== b c a)
              (== c a b)
              (== c b a))))
-  (is (== (yfik/make-yfi :inches 5) (+ 2 3) (+ (yfik/make-yfi :inches 2) (yfik/make-yfi :inches 3)))) )
+  (is (== (yfik/make-yfi :inches 5) (+ 2 3) (+ (yfik/make-yfi :inches 2) (yfik/make-yfi :inches 3))))
+  (dotimes [_ 100]
+    (let [len (rand-int 200)
+          yfi1 (concise.yfi.YFI. len)
+          yfi2 (yfik/make-yfi :inches (yfi/inches yfi1)
+                              :feet   (yfi/feet yfi1)
+                              :yards  (yfi/yards yfi1))]
+      (is (== yfi1 yfi2)))))

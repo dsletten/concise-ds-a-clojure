@@ -162,4 +162,9 @@
              (== b c a)
              (== c a b)
              (== c b a))))
-  (is (== (yfi/make-yfi 5) (+ 2 3) (+ (yfi/make-yfi 2) (yfi/make-yfi 3)))) )
+  (is (== (yfi/make-yfi 5) (+ 2 3) (+ (yfi/make-yfi 2) (yfi/make-yfi 3))))
+  (dotimes [_ 100]
+    (let [len (rand-int 200)
+          yfi1 (concise.yfi.YFI. len)
+          yfi2 (yfi/make-yfi (yfi/yards yfi1) (yfi/feet yfi1) (yfi/inches yfi1))]
+      (is (== yfi1 yfi2)))))
