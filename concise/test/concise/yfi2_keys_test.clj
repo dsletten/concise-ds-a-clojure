@@ -1,11 +1,11 @@
 ;;;;
 ;;;;
-;;;;   Clojure feels like a general-purpose language beamed back from the near future.
-;;;;   -- Stu Halloway
+;;;;   One of the nice things about Clojure is that it lets you fix Java
+;;;;   -- Rich Hickey
 ;;;;
 ;;;;   Name:               yfi_keys_test.clj
 ;;;;
-;;;;   Started:            Sat May  4 17:53:10 2024
+;;;;   Started:            Sat Apr 20 17:30:21 2024
 ;;;;   Modifications:
 ;;;;
 ;;;;   Purpose:
@@ -25,11 +25,11 @@
 ;;;;
 ;;;;
 
-(ns concise.yfi-keys-test
+(ns concise.yfi2-keys-test
   (:refer-clojure :exclude [+ ==])
   (:require [clojure.test :refer [deftest is]]
-            [concise.yfi :refer [+ ==] :as yfi]
-            [concise.yfi-keys :as yfik]))
+            [concise.yfi2 :refer [+ ==] :as yfi]
+            [concise.yfi2-keys :as yfik]))
 
 (deftest test-make-yfi
   (is (thrown-with-msg? IllegalArgumentException
@@ -47,7 +47,10 @@
   (is (clojure.core/== 12 (yfi/length (yfik/make-yfi :feet 1))))
   (is (clojure.core/== 36 (yfi/length (yfik/make-yfi :yards 1))))
   (is (clojure.core/== 49 (yfi/length (yfik/make-yfi :yards 1 :feet 1 :inches 1))))
-  (is (clojure.core/== 100 (yfi/length (+ (yfik/make-yfi :inches 49) (yfik/make-yfi :inches 51))))))
+  (is (clojure.core/== 100 (yfi/length (+ (yfik/make-yfi :inches 49) (yfik/make-yfi :inches 51)))))
+  (is (clojure.core/== 100 (yfi/length (+ (yfik/make-yfi  :inches 49) 51))))
+  (is (clojure.core/== 100 (yfi/length (+ 49 (yfik/make-yfi :inches 51)))))
+  (is (clojure.core/== 100 (yfi/length (+ 49 51)))) )
 
 (deftest test-inches
   (is (clojure.core/== 0 (yfi/inches (yfik/make-yfi))))
@@ -78,11 +81,16 @@
 ;;;    
 (deftest test-+
   (is (true? (instance? concise.yfi.YFI (+))))
-  (is (true? (instance? concise.yfi.YFI (+ (yfik/make-yfi :inches 1)))))
-  (is (== (yfik/make-yfi) (+)))
-  (let [a (yfik/make-yfi :inches 1)]
-    (and (is (== a (+ (yfik/make-yfi) a)))
-         (is (== a (+ a (yfik/make-yfi))))))
+  (is (true? (instance? concise.yfi.YFI (+ 1))))
+  (is (== 0 (+)))
+  (is (== 1 (+ 0 1)))
+  (is (== 1 (+ (yfik/make-yfi) (yfik/make-yfi :inches 1))))
+  (let [a 10
+        b 20]
+    (is (== (+ a b) (+ b a))))
+  (let [a 20
+        b (yfik/make-yfi :inches 30)]
+    (is (== (+ a b) (+ b a))))
   (let [a (yfik/make-yfi :inches 20)
         b (yfik/make-yfi :inches 30)]
     (is (== (+ a b) (+ b a))))
@@ -93,16 +101,15 @@
         b (yfik/make-yfi :inches 30)
         c (yfik/make-yfi :inches 40)]
     (is (== (+ (+ a b) c) (+ a (+ b c)) (+ a b c))))
-  (is (clojure.core/== (reduce clojure.core/+ (range 1 11))
-                       (yfi/length (apply + (map #(yfik/make-yfi :inches %) (range 1 11)))))))
+  (is (== (reduce clojure.core/+ (range 1 11))
+          (apply + (range 1 11))
+          (apply + (map #(yfik/make-yfi :inches %) (range 1 11))))))
 
 (deftest test-==
-  (is (== (yfik/make-yfi)))
-  (is (== (yfik/make-yfi :inches 1) (yfik/make-yfi :inches 1)))
-  (is (not (== (+) (yfik/make-yfi :inches 1))))
-  (is (== (yfik/make-yfi :inches 5)
-          (+ (yfik/make-yfi :inches 2) (yfik/make-yfi :inches 3))))
-  (let [a (+ (yfik/make-yfi :inches 20) (yfik/make-yfi :inches 19))
+  (is (== 0))
+  (is (== 1 1))
+  (is (not (== 0 1)))
+  (let [a 39
         b (yfik/make-yfi :inches 39)
         c (yfik/make-yfi :yards 1 :inches 3)]
     (is (and (== a b c)
@@ -111,6 +118,7 @@
              (== b c a)
              (== c a b)
              (== c b a))))
+  (is (== (yfik/make-yfi :inches 5) (+ 2 3) (+ (yfik/make-yfi :inches 2) (yfik/make-yfi :inches 3))))
   (dotimes [_ 100]
     (let [len (rand-int 200)
           yfi1 (concise.yfi.YFI. len)

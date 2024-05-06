@@ -1,11 +1,11 @@
 ;;;;
 ;;;;
-;;;;   I think of Clojure as kind of the greatest hits of the last 20 or 30 years of computer science. It's like that mix tape from the Guardians of the Galaxy, only in software.
-;;;;   -- Russ Olsen
+;;;;   With Clojure we found that the very very low friction to get things done enables you to do things that you'd otherwise never even consider
+;;;;   -- Orestis Markou
 ;;;;
 ;;;;   Name:               yfi_test.clj
 ;;;;
-;;;;   Started:            Sat May  4 17:53:05 2024
+;;;;   Started:            Wed Jul 19 02:25:48 2023
 ;;;;   Modifications:
 ;;;;
 ;;;;   Purpose:
@@ -25,10 +25,10 @@
 ;;;;
 ;;;;
 
-(ns concise.yfi-test
+(ns concise.yfi2-test
   (:refer-clojure :exclude [+ ==])
   (:require [clojure.test :refer [deftest is]]
-            [concise.yfi :refer [+ ==] :as yfi]))
+            [concise.yfi2 :refer [+ ==] :as yfi]))
 
 (deftest test-make-yfi
   (is (thrown-with-msg? IllegalArgumentException
@@ -46,7 +46,10 @@
   (is (clojure.core/== 12 (yfi/length (yfi/make-yfi 1 0))))
   (is (clojure.core/== 36 (yfi/length (yfi/make-yfi 1 0 0))))
   (is (clojure.core/== 49 (yfi/length (yfi/make-yfi 1 1 1))))
-  (is (clojure.core/== 100 (yfi/length (+ (yfi/make-yfi 49) (yfi/make-yfi 51))))))
+  (is (clojure.core/== 100 (yfi/length (+ (yfi/make-yfi 49) (yfi/make-yfi 51)))))
+  (is (clojure.core/== 100 (yfi/length (+ (yfi/make-yfi 49) 51))))
+  (is (clojure.core/== 100 (yfi/length (+ 49 (yfi/make-yfi 51)))))
+  (is (clojure.core/== 100 (yfi/length (+ 49 51)))) )
 
 (deftest test-inches
   (is (clojure.core/== 0 (yfi/inches (yfi/make-yfi))))
@@ -72,13 +75,66 @@
   (is (clojure.core/== 1 (yfi/yards (yfi/make-yfi 1 1 1))))
   (is (clojure.core/== 1 (yfi/yards (+ (yfi/make-yfi 12) (yfi/make-yfi 12) (yfi/make-yfi 12)))) ))
 
+;; (is (instance? concise.yfi.YFI (+)) nil)
+;; (clojure.test/try-expr nil (instance? concise.yfi.YFI (+)))
+
+;; (try
+;;   (let [klass__9664__auto__ concise.yfi.YFI
+;;         object__9665__auto__ (+)]
+;;     (let [result__9666__auto__ (instance?
+;;                                  klass__9664__auto__
+;;                                  object__9665__auto__)]
+;;       (if result__9666__auto__
+;;         (clojure.test/do-report
+;;           {:type :pass,
+;;            :expected '(instance? concise.yfi.YFI (+)),
+;;            :actual (class object__9665__auto__),
+;;            :message nil})
+;;         (clojure.test/do-report
+;;           {:type :fail,
+;;            :expected '(instance? concise.yfi.YFI (+)),
+;;            :actual (class object__9665__auto__),
+;;            :message nil}))
+;;       result__9666__auto__))
+;;   (catch
+;;     java.lang.Throwable
+;;     t__9676__auto__
+;;     (clojure.test/do-report
+;;       {:type :error,
+;;        :expected '(instance? concise.yfi.YFI (+)),
+;;        :actual t__9676__auto__,
+;;        :message nil})))
+
+;(clojure.test/test-var #'test-+)
+
+;;;
+;;;    Succeeds in isolation
+;;;    
+(deftest test-+
+  (is (instance? concise.yfi.YFI (+))))
+
+;;;
+;;;    Fails if anything follows?!?!
+;;;
+(deftest test-+
+  (is (instance? concise.yfi.YFI (+)))
+  (is (== 0 (+))))
+
+;;;
+;;;    Succeeds as boolean?!
+;;;    
 (deftest test-+
   (is (true? (instance? concise.yfi.YFI (+))))
-  (is (true? (instance? concise.yfi.YFI (+ (yfi/make-yfi 1)))))
-  (is (== (yfi/make-yfi) (+)))
-  (let [a (yfi/make-yfi 1)]
-    (and (is (== a (+ (yfi/make-yfi) a)))
-         (is (== a (+ a (yfi/make-yfi))))))
+  (is (true? (instance? concise.yfi.YFI (+ 1))))
+  (is (== 0 (+)))
+  (is (== 1 (+ 0 1)))
+  (is (== 1 (+ (yfi/make-yfi) (yfi/make-yfi 1))))
+  (let [a 10
+        b 20]
+    (is (== (+ a b) (+ b a))))
+  (let [a 20
+        b (yfi/make-yfi 30)]
+    (is (== (+ a b) (+ b a))))
   (let [a (yfi/make-yfi 20)
         b (yfi/make-yfi 30)]
     (is (== (+ a b) (+ b a))))
@@ -89,15 +145,15 @@
         b (yfi/make-yfi 30)
         c (yfi/make-yfi 40)]
     (is (== (+ (+ a b) c) (+ a (+ b c)) (+ a b c))))
-  (is (clojure.core/== (reduce clojure.core/+ (range 1 11))
-                       (yfi/length (apply + (map yfi/make-yfi (range 1 11)))))))
+  (is (== (reduce clojure.core/+ (range 1 11))
+          (apply + (range 1 11))
+          (apply + (map yfi/make-yfi (range 1 11))))))
 
 (deftest test-==
-  (is (== (yfi/make-yfi)))
-  (is (== (yfi/make-yfi 1) (yfi/make-yfi 1)))
-  (is (not (== (+) (yfi/make-yfi 1))))
-  (is (== (yfi/make-yfi 5) (+ (yfi/make-yfi 2) (yfi/make-yfi 3))))
-  (let [a (+ (yfi/make-yfi 20) (yfi/make-yfi 19))
+  (is (== 0))
+  (is (== 1 1))
+  (is (not (== 0 1)))
+  (let [a 39
         b (yfi/make-yfi 39)
         c (yfi/make-yfi 1 0 3)]
     (is (and (== a b c)
@@ -106,6 +162,7 @@
              (== b c a)
              (== c a b)
              (== c b a))))
+  (is (== (yfi/make-yfi 5) (+ 2 3) (+ (yfi/make-yfi 2) (yfi/make-yfi 3))))
   (dotimes [_ 100]
     (let [len (rand-int 200)
           yfi1 (concise.yfi.YFI. len)

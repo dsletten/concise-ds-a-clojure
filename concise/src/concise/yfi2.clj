@@ -1,11 +1,11 @@
 ;;;;
 ;;;;
-;;;;   In Clojure, because the language is so bendable, you actually bend language towards the problem, not the problem towards the language.
-;;;;   -- Neal Ford
+;;;;   Programming is not about typing, it's about thinking.
+;;;;   -- Rich Hickey
 ;;;;
 ;;;;   Name:               yfi.clj
 ;;;;
-;;;;   Started:            Sat May  4 17:46:33 2024
+;;;;   Started:            Wed Jul 19 02:25:21 2023
 ;;;;   Modifications:
 ;;;;
 ;;;;   Purpose:
@@ -25,33 +25,44 @@
 ;;;;
 ;;;;
 
-(ns concise.yfi
+(ns concise.yfi2
   (:refer-clojure :exclude [+ ==]))
 
 (defprotocol Measure
-  (length [this]))
+  (length [this])
+  (add [this that])
+  (equal [this that]))
 
 (deftype YFI [inches]
   Measure
-  (length [this] inches))
+  (length [this] inches)
+  (add [this that]
+    (YFI. (clojure.core/+ (length this) (length that))))
+  (equal [this that]
+    (clojure.core/== (length this) (length that))))
+  ;; Object
+  ;; (equals [this that]
+  ;;   (clojure.core/= (length this) (length that))))
 
+(extend-protocol Measure
+  ;; clojure.lang.Symbol
+  ;; (length [this] (println "S:" this) this)
+  Long
+  (length [this] this)
+  (add [this that]
+    (YFI. (clojure.core/+ this (length that))))
+  (equal [this that]
+    (clojure.core/== this (length that))))
+  ;; Object
+  ;; (equals [this that]
+  ;;   (clojure.core/= this (length that))))
+    
 (let [zero (YFI. 0)]
   (defn + [& yfis]
-    (reduce #(YFI. (clojure.core/+ (length %1) (length %2))) zero yfis)))
-
-;; (let [zero (YFI. 0)]
-;;   (defn + [& yfis]
-;;     (reduce (comp #(YFI. %)
-;;                   (comp (partial apply clojure.core/+)
-;;                         (partial map length) list))
-;;             zero
-;;             yfis)))
+    (reduce add zero yfis)))
 
 (defn == [yfi & yfis]
-  (every? #(clojure.core/== (length yfi) (length %)) yfis))
-
-;; (defn == [yfi & yfis]
-;;   (every? (comp (partial clojure.core/== (length yfi)) length) yfis))
+  (every? (partial equal yfi) yfis))
 
 (defn inches [yfi]
   (mod (length yfi) 12))
@@ -94,6 +105,3 @@
   (if-let [[_ yards feet inches] (re-matches #"yards: (\d+) feet: (\d+) inches: (\d+)" cs)]
     (apply make-yfi (map #(Long/parseLong %) [yards feet inches]))
     (throw (RuntimeException. "Unrecognized YFI"))))
-
-;; (+ #yfi "yards: 0 feet: 2 inches: 5" #yfi "yards: 1 feet: 2 inches: 5")
-;; #yfi "yards: 2 feet: 1 inches: 10"
