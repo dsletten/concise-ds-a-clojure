@@ -97,3 +97,21 @@
 
 ;; (+ #yfi "yards: 0 feet: 2 inches: 5" #yfi "yards: 1 feet: 2 inches: 5")
 ;; #yfi "yards: 2 feet: 1 inches: 10"
+
+
+;; (count-if #'evenp '(1 2 3 4 5)) => 2
+
+(defn count-if [f coll]
+  ((comp count filter) f coll))
+
+(count-if even? [1 2 3 4 5])
+
+;; (f x y) -> (f (g x) (g y))
+;; (* 1 2) -> (* (inc 1) (inc 2))
+
+;; (comp (partial apply f) (partial map g) list)
+
+(comp (partial apply *) (partial map inc) list)
+((comp (partial apply *) (partial map inc) list) 1)
+((comp (partial apply *) (partial map inc) list) 1 2)
+((comp (partial apply *) (partial map inc) list) 1 2 3)
